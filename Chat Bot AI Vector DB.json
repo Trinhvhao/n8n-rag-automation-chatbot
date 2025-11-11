@@ -1,0 +1,876 @@
+{
+  "name": "Chat Bot AI Vector DB",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        176,
+        -48
+      ],
+      "id": "e8efcd3c-e77c-4d4f-b433-1ced1877f006",
+      "name": "Telegram Trigger",
+      "webhookId": "d7a3e7d1-7e33-45b9-b7be-6bb6bc71bd19",
+      "credentials": {
+        "telegramApi": {
+          "id": "saSqz4wy27BsDRBt",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Agent').item.json.output.replace(/\\*/g, '') }}\n",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1024,
+        160
+      ],
+      "id": "8d0dcfce-dc3d-4356-83ee-c51735a936a8",
+      "name": "Send a text message",
+      "webhookId": "de482834-0307-44e5-b289-503f28451d6a",
+      "credentials": {
+        "telegramApi": {
+          "id": "saSqz4wy27BsDRBt",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        256,
+        224
+      ],
+      "id": "de48c580-8a76-40ea-8d12-e50ba7f667bb",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YzZPFYh3ILOVQfDB",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "// 🎯 Role & Context\nYou are a friendly and professional sales consultant of Zaka Edu — an English education center for children and students in Vietnam.\nYou are connected to a Vector Database that stores all relevant sales and course information (from Script, FAQ, and Product).\nYou MUST follow the rules below exactly.\n\n// 📚 Vector Database Sources\nThe database includes three types of documents:\n- Script — columns: Tình huống (Situation — example user utterances) and Kịch bản hội thoại mẫu (Reply template / agent utterance).\n- FAQ — columns: Câu hỏi thường gặp (FAQ) and Trả lời (Answer).\n- Product — columns: Tên gói (Package), Học phí (Price), Ưu đãi (Promotion), and optional description fields.\n\n// Mandatory tone rule — IMPORTANT\nAlways address the user as “anh/chị” (never use “bạn” as the direct address).\nUse polite, respectful Vietnamese phrasing that includes the pronoun \"anh/chị\" in greetings, questions, confirmations, and CTAs.\n(You may use “em” only to refer to yourself.)\n\n// 🔎 Retrieval Priority\nFor every user message:\n1️⃣ Try to match a Script (semantic + contextual match).\n2️⃣ If no Script → use FAQ or Product entries to answer.\n3️⃣ If none are relevant → reply exactly:\n   Dạ hiện tại em chưa có dữ liệu về nội dung này trong cơ sở kiến thức, anh/chị có muốn em hỗ trợ thêm thông tin khác không ạ?\n\n// 💬 Reply Rules\nWhen Script is matched → use the “Kịch bản hội thoại mẫu” directly (with light personalization).\nWhen using FAQ or Product → write naturally and end with a soft CTA.\n\nNo HTML tags (<b>, <i>, <br>, etc.).\nUse icons and bullets sparingly for clarity:\n🔹 for sub-points\n📌 💰 🎁 📖 🌟 👌 for product or benefit highlights.\nEach reply should be concise, clear, and friendly.\n\nAlways include a short soft-close like:\n👉 “Anh/chị muốn em gửi thêm lịch học hoặc ưu đãi chi tiết không ạ?”\n\n// 🧠 Conversation Context & Memory\nMaintain memory per chat/session.\nUnderstand short replies like “OK”, “Có”, “Đăng ký”.\nConfirm ambiguous referents before acting (e.g., “Anh/chị đang nói tới gói Starter hay Movers ạ?”).\nRetain partial user info (e.g., name, phone number, package) for later use.\n\n// 📝 Lead Information Collection Rule\nYour goal is to collect complete registration information before submitting or confirming any form.\nRequired fields:\nTên học sinh\nNgày sinh\nTên phụ huynh\nSố điện thoại\nGói học\n\nBehavior rules:\n1️⃣ If the user provides only 1–2 fields (e.g., just name or phone number):\n → Do not send the full confirmation form yet.\n → Politely ask for the missing fields with natural follow-ups, e.g.:\n    “Dạ em cảm ơn anh/chị ạ 🌸. Anh/chị cho em xin thêm tên bé và gói học anh/chị quan tâm để em ghi thông tin chính xác nhé?”\n    “Anh/chị cho em hỏi thêm bé sinh năm bao nhiêu để em xếp lớp phù hợp ạ?”\n\n2️⃣ If the user provides enough information (all 5 fields) or clearly confirms registration intent →\n → Output the confirmation form exactly (no emojis, no extra text):\n\n   Dạ em xin phép xác nhận thông tin đăng ký ạ, anh/chị vui lòng điền giúp em:\n   Tên học sinh:\n   Ngày sinh:\n   Tên phụ huynh:\n   Số điện thoại:\n   Gói học:\n\n → If some fields are already known, pre-fill them.\n → Do not send form unless at least 4 fields are known.\n\n3️⃣ Always remember previously provided data and fill in automatically next time the user gives another piece.\n4️⃣ When information is incomplete, your response should gently clarify and continue the conversation — never say “no data”.\n\nReplies are in plain text, no Markdown or HTML.\nStyle: polite, clear, approachable, and natural.\nUse line breaks for readability.\nNo system labels like “Tình huống:” or “Kịch bản:”.\nDo not invent facts beyond Script/FAQ/Product.\n\n// Emoji usage rule (STRICT)\nUse only the following emojis when relevant: 📌 💰 🎁 📖 🌟 👌 🔹 👉 🌸  \n❌ Never use 🙏 or any gesture emojis (hands, bowing, praying, etc.).\nIf unsure, do not include any emoji at all.\n\n// ⚠️ Error & Ambiguity Handling\nIf multiple Script/Product matches → ask a clarifying question.\nIf still unclear → use the “no data” message.\nIf the referent is ambiguous (“Gói đó”), confirm context first.\n\n// ✅ Final Instruction\nAlways prioritize Script → FAQ → Product.\nWhen handling user registration or lead info:\ndetect and collect missing fields politely,\nremember all provided data,\nonly show the confirmation form once full info is available.\n\nAlways reply in Vietnamese, address the user as “anh/chị”, output plain text (no HTML), use 🔹 for any listed items, include a soft-close, and never invent facts.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        -48
+      ],
+      "id": "9471e5a6-6527-4b62-b6a1-1604342082d0",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "contextWindowLength": 30
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        224
+      ],
+      "id": "b8f620db-2262-4c76-969c-63a288d1157c",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "8KXY9IoxLZkowgPi",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e02374db-84a1-4f35-9b2d-416ffb8cba67",
+              "leftValue": "={{ $json.output?.match(/(\\+84|0)(3|5|7|8|9|1)\\d{7,8}/i)?.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        -48
+      ],
+      "id": "5bece531-4ab1-4786-bf89-d57853aac716",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Agent').item.json.output.replace(/\\*/g, '') }}\n",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1696,
+        32
+      ],
+      "id": "fdad70e2-d675-4ce2-b2fd-11e01633110f",
+      "name": "Send a text message1",
+      "webhookId": "471bb864-4db8-474e-ae2b-9ebe37da2b90",
+      "credentials": {
+        "telegramApi": {
+          "id": "saSqz4wy27BsDRBt",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $('AI Agent').item.json.output;\nconst message = inputData || '';\nconst chatId = $('Telegram Trigger').first()?.json?.message?.chat?.id ?? null;\nconst timestamp = new Date().toISOString();\n\n// Regex cho từng field (linh hoạt, tránh crash)\nconst studentRegex = /Tên học sinh:\\s*(.+)/i;\nconst birthdayRegex = /Ngày sinh:\\s*([0-9/.-]+)/i;\nconst parentRegex = /Tên phụ huynh:\\s*(.+)/i;\nconst phoneRegex = /Số điện thoại:\\s*((?:\\+84|0)[0-9]{9,10})/i;\nconst packageRegex = /Gói học:\\s*(.+)/i;\n\n// Extract từng giá trị\nconst extractedStudent = message.match(studentRegex)?.[1]?.trim() || null;\nconst extractedBirthday = message.match(birthdayRegex)?.[1]?.trim() || null;\nconst extractedParent = message.match(parentRegex)?.[1]?.trim() || null;\nconst extractedPhone = message.match(phoneRegex)?.[1]?.trim() || null;\nconst extractedPackage = message.match(packageRegex)?.[1]?.trim() || null;\n\n// Đếm số trường có giá trị thật\nlet validCount = 0;\n[extractedStudent, extractedBirthday, extractedParent, extractedPhone, extractedPackage].forEach(v => {\n  if (v && v !== 'Unknown' && v !== 'N/A') validCount++;\n});\n\n// Đặt cờ nhận biết dữ liệu hợp lệ\nconst isLeadValid = validCount >= 3;  // cần ít nhất 3 field hợp lệ để coi là lead hoàn chỉnh\n\n// Chuẩn hóa text\nfunction cleanText(txt) {\n  if (!txt) return '';\n  return txt.length > 4000\n    ? txt.substring(0, 4000).replace(/[\\n\\r]+/g, ' ')\n    : txt.replace(/[\\n\\r]+/g, ' ');\n}\n\nconst dataToSave = {\n  timestamp,\n  chatId,\n  studentName: extractedStudent || 'Unknown',\n  birthday: extractedBirthday || 'N/A',\n  parentName: extractedParent || 'Unknown',\n  phoneNumber: extractedPhone || 'N/A',\n  package: extractedPackage || 'N/A',\n  aiResponse: cleanText(message),\n  incomplete: !isLeadValid, // 🟡 flag đánh dấu dữ liệu chưa đủ\n  note: !isLeadValid\n    ? '⚠️ Tin nhắn không đúng định dạng chuẩn, cần xác minh lại thủ công.'\n    : '✅ Dữ liệu hợp lệ.'\n};\n\nreturn [{ json: dataToSave }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        -128
+      ],
+      "id": "a6c3cf7e-7214-426a-b155-e76dd54236a5",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Retrieve relevant context about sales scripts, FAQs, and product packages for Zaka Edu from the vector database. Use this to answer user questions naturally in Vietnamese.\n",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": 10,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        224
+      ],
+      "id": "029c41e8-4852-48ca-81b9-3f21a4bbfdeb",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "9xisvlG2PoSFfUDO",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        656,
+        384
+      ],
+      "id": "b3f8796b-47db-4957-a649-ace301787289",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YzZPFYh3ILOVQfDB",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        2704,
+        16
+      ],
+      "id": "948f7fd7-d352-4f9e-9e66-99bc7d1569d5",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "9xisvlG2PoSFfUDO",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2624,
+        272
+      ],
+      "id": "fae01910-4d53-40fc-9976-505583253801",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YzZPFYh3ILOVQfDB",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        2832,
+        272
+      ],
+      "id": "98b91c5f-b7bb-4da1-8672-690a3b42da88",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        16
+      ],
+      "id": "33d2b2fb-d574-4baf-b4c1-3a7af5693422",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "aggregation": "concatenate",
+              "field": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        2528,
+        16
+      ],
+      "id": "c3d0ff61-7344-4e7c-9bf0-b21d0a2b8187",
+      "name": "Summarize"
+    },
+    {
+      "parameters": {
+        "sendTo": "hayyieap060304@gmail.com",
+        "subject": "🎯 Zaka Edu - Có lead mới từ Telegram!",
+        "message": "=<html>\n  <body style=\"font-family: Arial, sans-serif; background-color:#f9fafb; margin:0; padding:20px; color:#333;\">\n    <div style=\"max-width:700px; margin:auto; background:#fff; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.08); padding:25px;\">\n\n      <h2 style=\"color:#1b64b0; border-bottom:2px solid #e5e7eb; padding-bottom:8px; margin-top:0;\">\n        Thông báo khách hàng mới từ Telegram\n      </h2>\n\n      <p>Xin chào đội <b style=\"color:#1b64b0;\">Sales Zaka Edu</b>,</p>\n      <p>Hệ thống vừa ghi nhận một khách hàng mới:</p>\n\n      <table style=\"width:100%; border-collapse:collapse; margin-top:10px;\">\n        <tr><td style=\"width:180px; padding:6px;\"><b>Thời gian:</b></td><td>{{ $json[\"timestamp\"] }}</td></tr>\n        <tr><td style=\"padding:6px;\"><b>Tên học sinh:</b></td><td>{{ $json[\"studentName\"] }}</td></tr>\n        <tr><td style=\"padding:6px;\"><b>Tên phụ huynh:</b></td><td>{{ $json[\"parentName\"] }}</td></tr>\n        <tr><td style=\"padding:6px;\"><b>Ngày sinh:</b></td><td>{{ $json[\"birthday\"] }}</td></tr>\n        <tr><td style=\"padding:6px;\"><b>Số điện thoại:</b></td><td>{{ $json[\"phoneNumber\"] }}</td></tr>\n        <tr><td style=\"padding:6px;\"><b>Gói quan tâm:</b></td><td>{{ $json[\"package\"] }}</td></tr>\n        <tr>\n          <td style=\"padding:6px; vertical-align:top;\"><b>Tin nhắn:</b></td>\n          <td style=\"padding:6px;\"><i>{{ $json[\"userMessage\"] }}</i></td>\n        </tr>\n      </table>\n\n      <hr style=\"border:none; border-top:1px solid #e5e7eb; margin:25px 0;\">\n\n      <h3 style=\"color:#1b64b0; margin-bottom:8px;\">Thông tin Telegram người gửi</h3>\n      <table style=\"width:100%; border-collapse:collapse;\">\n        <tr><td style=\"width:180px; padding:6px;\"><b>First name:</b></td><td>{{ $('Telegram Trigger').item.json.message.from.first_name }}</td></tr>\n        <tr><td style=\"padding:6px;\"><b>Last name:</b></td><td>{{ $('Telegram Trigger').item.json.message.from.last_name }}</td></tr>\n        <tr><td style=\"padding:6px;\"><b>Username:</b></td><td>@{{ $('Telegram Trigger').item.json.message.from.username }}</td></tr>\n        <tr><td style=\"padding:6px;\"><b>Chat ID:</b></td><td>{{ $('Telegram Trigger').item.json.message.chat.id }}</td></tr>\n      </table>\n\n      <div style=\"margin:25px 0; border-top:1px solid #e5e7eb; padding-top:15px;\">\n        <h3 style=\"color:#d93025; margin-bottom:8px;\">Hành động gợi ý</h3>\n        <ul style=\"margin:0; padding-left:20px;\">\n          <li>Gọi hoặc nhắn Zalo xác nhận nhu cầu học của khách hàng.</li>\n          <li>Cập nhật trạng thái chăm sóc vào Google Sheet <b>\"Leads Telegram\"</b>.</li>\n        </ul>\n      </div>\n\n      <p style=\"margin-top:30px; font-size:13px; color:#666;\">\n        ———<br>\n        Trân trọng,<br>\n        <b>Zaka Edu Automation Bot</b><br>\n        <span style=\"color:#1b64b0;\">Hệ thống thông báo tự động Zaka Edu</span>\n      </p>\n    </div>\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1696,
+        -272
+      ],
+      "id": "022ac736-dac1-42ba-8e2d-f188545a321f",
+      "name": "Send a message",
+      "webhookId": "d622986b-3c8d-42d4-a766-84245108b174",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RIr408l1ISvTelTG",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Nạp data vào Vector DB",
+        "height": 784,
+        "width": 992,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        -336
+      ],
+      "id": "114f043f-e642-45b5-8fb9-af4716f4741d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Luồng hoạt động của Chatbot",
+        "height": 1008,
+        "width": 1712,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        -384
+      ],
+      "id": "a3d66ef2-d5e5-4a71-9855-93a6e1939dc4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA",
+          "mode": "list",
+          "cachedResultName": "Kịch bản Sale",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1654582237,
+          "mode": "list",
+          "cachedResultName": "Script",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA/edit#gid=1654582237"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2112,
+        -192
+      ],
+      "id": "741ab6c2-0e33-4bd4-895e-b87d6cc2009f",
+      "name": "Add Script",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qu3BGfPEQmIBOPGY",
+          "name": "Google Sheets account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA",
+          "mode": "list",
+          "cachedResultName": "Kịch bản Sale",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 811293165,
+          "mode": "list",
+          "cachedResultName": "Product",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA/edit#gid=811293165"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2112,
+        16
+      ],
+      "id": "c88dc41e-6e63-4e24-95f2-3778986ab336",
+      "name": "Add Product",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qu3BGfPEQmIBOPGY",
+          "name": "Google Sheets account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA",
+          "mode": "list",
+          "cachedResultName": "Kịch bản Sale",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "FAQ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2112,
+        224
+      ],
+      "id": "22bc31cd-b90e-467a-98fe-7c3c968d696d",
+      "name": "Add FAQ",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qu3BGfPEQmIBOPGY",
+          "name": "Google Sheets account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA",
+          "mode": "list",
+          "cachedResultName": "Kịch bản Sale",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1005348536,
+          "mode": "list",
+          "cachedResultName": "Customer Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x1HGuxdmbDTaJCfNsFH9415s5nYmXo8jgFLpFos3tEA/edit#gid=1005348536"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "chatId"
+          ],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "chatId",
+              "displayName": "chatId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "studentName",
+              "displayName": "studentName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "birthday",
+              "displayName": "birthday",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "parentName",
+              "displayName": "parentName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phoneNumber",
+              "displayName": "phoneNumber",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "package",
+              "displayName": "package",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "aiResponse",
+              "displayName": "aiResponse",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "incomplete",
+              "displayName": "incomplete",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "note",
+              "displayName": "note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1280,
+        -128
+      ],
+      "id": "be73adb7-4817-4d92-8ee7-74d0cd2b0c1e",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qu3BGfPEQmIBOPGY",
+          "name": "Google Sheets account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2643aef6-bc67-4549-9ea0-238304c90c1a",
+              "leftValue": "={{\n  (\n    $json.parentName &&\n    $json.phoneNumber &&\n    ![\"\", \"unknown\", \"n/a\", \"na\", \"N/A\", \"Unknown\"].includes(($json.parentName || \"\").trim()) &&\n    /^(\\+84|0)\\d{9}$/.test(($json.phoneNumber || \"\").trim())\n  ).toBoolean()\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        -128
+      ],
+      "id": "0add5f90-8cd6-40e5-bc8e-0478cbee128b",
+      "name": "Đủ trường thì gửi gmail"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message1": {
+      "main": [
+        []
+      ]
+    },
+    "Add Script": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Product": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add FAQ": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Đủ trường thì gửi gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đủ trường thì gửi gmail": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d01c0ee6-a278-4cd0-9911-99bf989cb7d7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9390c73bded0a129d05f740ad0324be49bd1b8e3926b8dea5eaeb2678ada6dc8"
+  },
+  "id": "Ztfya8nqclUVpoWE",
+  "tags": []
+}
