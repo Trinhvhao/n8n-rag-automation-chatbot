@@ -28,21 +28,24 @@
 
 - [Giới thiệu](#-giới-thiệu)
 - [Tính năng](#-tính-năng)
-- [Kiến trúc hệ thống](#-kiến-trúc-hệ-thống)
-- [Công nghệ sử dụng](#-công-nghệ-sử-dụng)
+- [Kiến trúc hệ thống](#️-kiến-trúc-hệ-thống)
+- [Công nghệ sử dụng](#️-công-nghệ-sử-dụng)
 - [Cài đặt](#-cài-đặt)
-- [Cấu hình](#-cấu-hình)
+- [Cấu hình](#️-cấu-hình)
 - [Sử dụng](#-sử-dụng)
 - [Ý nghĩa đề tài](#-ý-nghĩa-đề-tài)
 - [Hướng phát triển](#-hướng-phát-triển)
 - [Đóng góp](#-đóng-góp)
 - [Giấy phép](#-giấy-phép)
+- [Tác giả](#-tác-giả)
 
 ## 🎯 Giới thiệu
 
 > **Chatbot AI với RAG** là hệ thống tư vấn thông minh tự động, kết hợp **Retrieval-Augmented Generation (RAG)** và **Workflow Automation** để giúp doanh nghiệp chăm sóc khách hàng 24/7 một cách hiệu quả và chuyên nghiệp.
 
 ### ✨ Điểm nổi bật
+
+<div align="center">
 
 <table>
 <tr>
@@ -66,6 +69,8 @@
 </td>
 </tr>
 </table>
+
+</div>
 
 ### 🎯 Vấn đề giải quyết
 
@@ -96,6 +101,8 @@
 ### 🎨 Tổng quan tính năng
 
 </div>
+
+<div align="center">
 
 <table>
 <tr>
@@ -142,6 +149,8 @@
 </td>
 </tr>
 </table>
+
+</div>
 
 ### 💾 Quản lý bộ nhớ
 
@@ -199,13 +208,17 @@
 
 ### Core Technologies
 
+<div align="center">
+
 | Công nghệ | Mục đích | Phiên bản |
-|-----------|----------|-----------|
+|:---------:|:--------:|:---------:|
 | **n8n** | Workflow automation & orchestration | Latest |
 | **Google Gemini** | Large Language Model (LLM) | PaLM API |
 | **Supabase** | Vector database & embeddings | Latest |
 | **PostgreSQL** | Chat memory storage | Latest |
 | **Telegram Bot API** | Messaging platform | v1.2 |
+
+</div>
 
 ### Supporting Services
 
@@ -254,6 +267,8 @@ cd n8n-rag-automation-chatbot
 
 ### Bước 3: Import Workflow vào n8n
 
+<div align="center">
+
 <table>
 <tr>
 <td width="30px">1️⃣</td>
@@ -276,6 +291,8 @@ cd n8n-rag-automation-chatbot
 <td>✅ Workflow được import thành công với tất cả các node!</td>
 </tr>
 </table>
+
+</div>
 
 <div align="center">
   <img src="https://img.shields.io/badge/Status-Ready_to_Configure-success?style=for-the-badge" alt="Ready"/>
@@ -367,12 +384,16 @@ CREATE DATABASE n8n_chat_memory;
 
 **Tạo Google Sheet với 4 sheets:**
 
+<div align="center">
+
 | Sheet | Cột | Mô tả |
-|-------|-----|-------|
+|:-----:|:---:|:-----:|
 | **Script** | Tình huống, Kịch bản hội thoại mẫu | Kịch bản tư vấn chuẩn |
 | **FAQ** | Câu hỏi thường gặp, Trả lời | Câu hỏi phổ biến |
 | **Product** | Tên gói, Học phí, Ưu đãi | Thông tin sản phẩm |
 | **Customer Leads** | timestamp, chatId, studentName, phoneNumber, ... | Lưu thông tin khách hàng |
+
+</div>
 
 **Cấu hình trong n8n:**
 - Enable Google Sheets API
@@ -442,13 +463,17 @@ Bot: Dạ em xin phép hỏi thêm thông tin ạ...
 
 ### Giá trị khoa học và công nghệ
 
+<div align="center">
+
 | Khía cạnh | Ý nghĩa |
-|-----------|---------|
+|:---------:|:-------:|
 | 💡 Khoa học – Công nghệ | Ứng dụng AI kết hợp RAG và workflow automation vào thực tế doanh nghiệp |
 | 🧩 Kỹ thuật phần mềm | Mô hình hóa quy trình tư vấn thành hệ thống trực quan, dễ mở rộng |
 | 🧠 Nghiệp vụ – Marketing | Phản hồi nhanh, cá nhân hóa trải nghiệm, tăng tỷ lệ chuyển đổi |
 | 📊 Chuyển đổi số | Biến quy trình tư vấn truyền thống thành tự động hoàn toàn |
 | 🚀 Thực tiễn ứng dụng | Triển khai tại bất kỳ doanh nghiệp dịch vụ nào |
+
+</div>
 
 ### Điểm mới và khác biệt
 
@@ -468,14 +493,18 @@ Bot: Dạ em xin phép hỏi thêm thông tin ạ...
 
 ### So sánh n8n vs Code truyền thống
 
+<div align="center">
+
 | Tiêu chí | n8n (No-code/Low-code) | Code truyền thống |
-|----------|------------------------|-------------------|
+|:--------:|:----------------------:|:-----------------:|
 | ⚙️ Cấu hình | Kéo-thả trực quan | Viết code thủ công |
 | ⏱️ Thời gian | Nhanh (vài ngày) | Lâu hơn (vài tuần) |
 | 🔌 Kết nối | Hàng trăm node có sẵn | Viết từng API call |
 | 🧠 Mở rộng | Dễ dàng qua UI | Cần viết lại code |
 | 🧱 Bảo trì | Dễ theo dõi | Cần lập trình viên |
 | 💰 Chi phí | Thấp, có thể self-host | Cao hơn |
+
+</div>
 
 ### Tác động thực tiễn
 
@@ -531,8 +560,6 @@ Dự án này được phát hành dưới giấy phép MIT. Xem file [LICENSE](
 
 <br/>
 
-[![GitHub](https://img.shields.io/badge/GitHub-Trinhvhao-181717?style=for-the-badge&logo=github)](https://github.com/Trinhvhao)
-[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:contact@dainam.edu.vn)
 
 </div>
 
@@ -547,7 +574,7 @@ Dự án này được phát hành dưới giấy phép MIT. Xem file [LICENSE](
   ![Made with Love](https://img.shields.io/badge/Made_with-❤️-red?style=for-the-badge)
   ![Vietnam](https://img.shields.io/badge/Made_in-Vietnam_🇻🇳-red?style=for-the-badge)
   
-  **Đại học Đại Nam** • 2024
+  **Đại học Đại Nam** 
   
   <br/>
   
